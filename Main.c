@@ -4,6 +4,10 @@
 #pragma warning(pop)
 #include "Main.h"
 
+HANDLE gGameWindow;
+
+BOOL gGameIsRunning;
+
 INT WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PSTR CommandLine, INT CmdShow)
 {
 
@@ -22,56 +26,46 @@ INT WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PSTR CommandLine, INT Cm
 	}
 
 	MSG Message = { 0 };
-	while (GetMessageA(&Message, NULL, 0, 0) > 0)
-	{
-		TranslateMessage(&Message);
 
-		DispatchMessageA(&Message);
+	gGameIsRunning = TRUE;
+
+	while (gGameIsRunning == TRUE) {
+		while (PeekMessageA(&Message, gGameWindow, 0, 0, PM_REMOVE)) {
+			DispatchMessageA(&Message);
+		}
+
+		ProcessPlayerInput();
+
+		// RenderFrameGraphics();
+
+		Sleep(1);
 	}
+
 Exit:
 	return (0);
 }
 LRESULT CALLBACK MainWindowProc(_In_ HWND WindowHandle, _In_ UINT Message, _In_ WPARAM WParam, _In_ LPARAM LParam)
 {
+	LRESULT Result = 0;
+
 	switch (Message)
 	{
-		OutputDebugStringA(Message);
-		OutputDebugStringA("\n");
 
 	case WM_CLOSE:
+		gGameIsRunning = FALSE;
+
 		PostQuitMessage(0);
 		break;
-	case WM_CREATE:
-		// Initialize the window.
-		return 0;
-
-	case WM_PAINT:
-		// Paint the window's client area.
-		return 0;
-
-	case WM_SIZE:
-		// Set the size and position of the window.
-		return 0;
-
-	case WM_DESTROY:
-		// Clean up window-specific data objects.
-		return 0;
-
-		//
-		// Process other messages.
-		//
-
 	default:
-		return DefWindowProc(WindowHandle, Message, WParam, LParam);
+		Result = DefWindowProc(WindowHandle, Message, WParam, LParam);
 	}
-	return (0);
+	return (Result);
 }
 
 DWORD CreateMainGameWindow(void) {
 	DWORD Result = ERROR_SUCCESS;
 
 	WNDCLASSEXA WindowClass = { 0 };
-	HWND WindowHandle = { 0 };
 
 	WindowClass.cbSize = sizeof(WNDCLASSEXA);
 	WindowClass.style = 0;
@@ -95,14 +89,14 @@ DWORD CreateMainGameWindow(void) {
 		goto Exit;
 	}
 
-	WindowHandle = CreateWindowExA(
+	gGameWindow = CreateWindowExA(
 		WS_EX_CLIENTEDGE,
 		WindowClass.lpszClassName,
 		GAME_NAME,
 		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 		CW_USEDEFAULT, CW_USEDEFAULT, 240, 120, NULL, NULL, GetModuleHandleA(NULL), NULL);
 
-	if (WindowHandle == NULL)
+	if (gGameWindow == NULL)
 	{
 		Result = GetLastError();
 		MessageBoxA(NULL, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
@@ -125,3 +119,11 @@ BOOL GameIsAlreadyRunning(void) {
 		return(FALSE);
 	}
 };
+
+void ProcessPlayerInput(void) {
+	short EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
+
+	if (EscapeKeyIsDown) {
+		SendMessageA(gGameWindow, WM_CLOSE, 0, 0);
+	}
+}
